@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartTraffic Vision Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #charts { display: flex; gap: 40px; }
+        canvas { background: #f8f8f8; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>SmartTraffic Vision Dashboard</h1>
+    <div id="charts">
+        <div>
+            <h3>Vehicle Count</h3>
+            <canvas id="countChart" width="400" height="200"></canvas>
+        </div>
+        <div>
+            <h3>Average Speed</h3>
+            <canvas id="speedChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    <div>
+        <h3>Congestion Heatmap</h3>
+        <canvas id="heatmap" width="400" height="200"></canvas>
+    </div>
+    <script>
+        const countChart = new Chart(document.getElementById('countChart'), {
+            type: 'bar',
+            data: { labels: ["Total"], datasets: [{ label: "Vehicles", data: [0], backgroundColor: "#2196f3" }] },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+        const speedChart = new Chart(document.getElementById('speedChart'), {
+            type: 'bar',
+            data: { labels: ["Total"], datasets: [{ label: "Avg Speed (km/h)", data: [0], backgroundColor: "#4caf50" }] },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+        const heatmapCanvas = document.getElementById('heatmap');
+        const heatmapCtx = heatmapCanvas.getContext('2d');
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('http://localhost:5000/api/stats');
+                const stats = await res.json();
+                // Update charts
+                countChart.data.datasets[0].data = [stats.vehicle_counts.total || 0];
+                countChart.update();
+                speedChart.data.datasets[0].data = [Math.round(stats.average_speeds.total || 0)];
+                speedChart.update();
+                // Draw heatmap
+                drawHeatmap(stats.heatmap);
+            } catch (e) {
+                // Ignore errors if backend is not running
+            }
+        }
+
+        function drawHeatmap(heatmap) {
+            if (!heatmap) return;
+            const rows = heatmap.length;
+            const cols = heatmap[0].length;
+            const w = heatmapCanvas.width / cols;
+            const h = heatmapCanvas.height / rows;
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const v = heatmap[y][x];
+                    const alpha = Math.min(v / 10, 1); // scale for visibility
+                    heatmapCtx.fillStyle = `rgba(255,0,0,${alpha})`;
+                    heatmapCtx.fillRect(x * w, y * h, w, h);
+                }
+            }
+        }
+
+        setInterval(fetchStats, 1000);
+    </script>
+</body>
+</html>

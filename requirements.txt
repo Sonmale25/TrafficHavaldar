@@ -1,0 +1,6 @@
+opencv-python>=4.5.0
+numpy
+flask
+flask-socketio
+sort
+-r requirements.txt
